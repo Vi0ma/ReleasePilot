@@ -1,0 +1,78 @@
+name: releasepilot
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-releasepilot}
+      POSTGRES_USER: ${POSTGRES_USER:-releasepilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  backend:
+    profiles: [full]
+    build: ./backend
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-releasepilot}
+      POSTGRES_USER: ${POSTGRES_USER:-releasepilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD in .env}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET in .env}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-900}
+      EVALUATION_CACHE_TTL_SECONDS: ${EVALUATION_CACHE_TTL_SECONDS:-60}
+      FRONTEND_ORIGIN: http://127.0.0.1:${DOCKER_DASHBOARD_PORT:-15173}
+    ports:
+      - "127.0.0.1:${DOCKER_BACKEND_PORT:-18080}:8080"
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+  dashboard:
+    profiles: [full]
+    build: ./frontend
+    ports:
+      - "127.0.0.1:${DOCKER_DASHBOARD_PORT:-15173}:8080"
+    depends_on:
+      backend: {condition: service_healthy}
+  demo-bff:
+    profiles: [full]
+    build:
+      context: ./demo-store
+      target: bff
+    env_file:
+      - path: ./demo-store/.env
+        required: false
+    environment:
+      RELEASEPILOT_BASE_URL: http://backend:8080
+      RELEASEPILOT_FLAG_KEY: ${RELEASEPILOT_FLAG_KEY:-new_checkout}
+      DEMO_BFF_HOST: 0.0.0.0
+    depends_on:
+      backend: {condition: service_healthy}
+  demo-store:
+    profiles: [full]
+    build:
+      context: ./demo-store
+      target: storefront
+    ports:
+      - "127.0.0.1:${DOCKER_DEMO_PORT:-15174}:8080"
+    depends_on:
+      demo-bff: {condition: service_healthy}
+volumes:
+  postgres_data:

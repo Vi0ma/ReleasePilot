@@ -1,0 +1,471 @@
+openapi: 3.0.3
+info:
+  title: ReleasePilot Core Domain API
+  version: 0.0.1
+  description: Phase 2. All operations require JWT. Missing or foreign resources return 404.
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/projects:
+    get:
+      summary: List owned projects
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Create a project with three environments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProject'
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/projects/{projectId}:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    get:
+      summary: Read an owned project
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update a project without changing its key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProject'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+    delete:
+      summary: Delete a project and its children
+      responses:
+        '204':
+          description: Success
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/projects/{projectId}/environments:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    get:
+      summary: List the default project environments
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Environment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/projects/{projectId}/environments/{environmentId}:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+      - name: environmentId
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    get:
+      summary: Read a project environment
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Environment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/projects/{projectId}/flags:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    get:
+      summary: List project flags
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Flag'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Create a flag and its three configurations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFlag'
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Flag'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/projects/{projectId}/flags/{flagId}:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+      - name: flagId
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    get:
+      summary: Read a project flag
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Flag'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update a flag without changing its key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFlag'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Flag'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+    delete:
+      summary: Delete a flag and its configurations
+      responses:
+        '204':
+          description: Success
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/projects/{projectId}/flags/{flagId}/configurations:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+      - name: flagId
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    get:
+      summary: List configurations for a flag
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Configuration'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/flags/{flagId}/environments/{environmentId}:
+    parameters:
+      - name: flagId
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+      - name: environmentId
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    get:
+      summary: Read a configuration
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Configuration'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      summary: Set enabled and rolloutPercentage together
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateConfiguration'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Configuration'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+  /api/v1/projects/{projectId}/audit:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    get:
+      summary: Read paginated project audit, including after deletion
+      parameters:
+        - name: page
+          in: query
+          schema: {type: integer, minimum: 0, default: 0}
+        - name: size
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
+  responses:
+    Unauthorized:
+      description: Missing, invalid or expired JWT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: Missing resource or access denied by ownership
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    InvalidRequest:
+      description: Invalid fields, JSON, identifiers or pagination
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Conflict:
+      description: Duplicate project key for owner or flag key in project
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+  schemas:
+    CreateProject:
+      type: object
+      required: [name, key]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 100}
+        key: {type: string, minLength: 1, maxLength: 100, pattern: '^[a-z0-9_-]+$'}
+        description: {type: string, nullable: true, maxLength: 2000}
+    UpdateProject:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 100}
+        description: {type: string, nullable: true, maxLength: 2000}
+    CreateFlag:
+      type: object
+      required: [name, key]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 100}
+        key: {type: string, minLength: 1, maxLength: 100, pattern: '^[a-z0-9_-]+$'}
+        description: {type: string, nullable: true, maxLength: 2000}
+    UpdateFlag:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 100}
+        description: {type: string, nullable: true, maxLength: 2000}
+    UpdateConfiguration:
+      type: object
+      required: [enabled, rolloutPercentage]
+      properties:
+        enabled: {type: boolean}
+        rolloutPercentage: {type: integer, minimum: 0, maximum: 100}
+    Project:
+      type: object
+      required: [id, name, key, ownerId, createdAt, updatedAt]
+      properties:
+        id: {type: integer, format: int64}
+        name: {type: string}
+        key: {type: string}
+        description: {type: string, nullable: true}
+        ownerId: {type: integer, format: int64}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    Environment:
+      type: object
+      required: [id, projectId, name, key, createdAt]
+      properties:
+        id: {type: integer, format: int64}
+        projectId: {type: integer, format: int64}
+        name: {type: string}
+        key: {type: string}
+        createdAt: {type: string, format: date-time}
+    Flag:
+      type: object
+      required: [id, projectId, name, key, createdAt, updatedAt]
+      properties:
+        id: {type: integer, format: int64}
+        projectId: {type: integer, format: int64}
+        key: {type: string}
+        name: {type: string}
+        description: {type: string, nullable: true}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    Configuration:
+      type: object
+      required: [id, featureFlagId, environmentId, enabled, rolloutPercentage, updatedAt]
+      properties:
+        id: {type: integer, format: int64}
+        featureFlagId: {type: integer, format: int64}
+        environmentId: {type: integer, format: int64}
+        enabled: {type: boolean}
+        rolloutPercentage: {type: integer, minimum: 0, maximum: 100}
+        updatedAt: {type: string, format: date-time}
+    AuditEvent:
+      type: object
+      required: [id, actorUserId, projectId, action, entityType, entityId, metadata, createdAt]
+      properties:
+        id: {type: integer, format: int64}
+        actorUserId: {type: integer, format: int64}
+        projectId: {type: integer, format: int64}
+        action: {type: string, enum: [PROJECT_CREATED, PROJECT_UPDATED, PROJECT_DELETED, FLAG_CREATED, FLAG_UPDATED, FLAG_DELETED, FLAG_CONFIGURATION_UPDATED, API_KEY_CREATED, API_KEY_REVOKED]}
+        entityType: {type: string}
+        entityId: {type: integer, format: int64}
+        metadata: {type: object, additionalProperties: true}
+        createdAt: {type: string, format: date-time}
+    AuditPage:
+      type: object
+      required: [content, page, size, totalElements]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+        page: {type: integer}
+        size: {type: integer}
+        totalElements: {type: integer, format: int64}
+    ApiError:
+      type: object
+      required: [timestamp, status, code, message, path, fieldErrors]
+      properties:
+        timestamp: {type: string, format: date-time}
+        status: {type: integer}
+        code: {type: string}
+        message: {type: string}
+        path: {type: string}
+        fieldErrors: {type: object, additionalProperties: {type: string}}

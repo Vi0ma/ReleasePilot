@@ -1,0 +1,15 @@
+{
+  "name": "releasepilot-demo-store", "private": true, "version": "0.0.1", "type": "module",
+  "engines": { "node": ">=22.23.3" },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5174 --strictPort",
+    "server": "node --env-file-if-exists=.env server/index.mjs",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 5174 --strictPort",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "smoke": "node --env-file-if-exists=.env scripts/smoke.mjs",
+    "setup": "node scripts/setup.mjs"
+  },
+  "dependencies": { "react": "^19.2.0", "react-dom": "^19.2.0" },
+  "devDependencies": { "@types/react": "^19.2.0", "@types/react-dom": "^19.2.0", "typescript": "~5.9.3", "vite": "^7.3.0" }
+}

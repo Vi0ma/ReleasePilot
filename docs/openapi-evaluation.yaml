@@ -1,0 +1,168 @@
+openapi: 3.0.3
+info:
+  title: ReleasePilot Evaluation and Environment API Keys
+  version: 0.3.0
+  description: JWT dashboard management; X-API-Key evaluation. See evaluation.md for hashing and cache semantics.
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/v1/evaluate:
+    post:
+      operationId: evaluateFlag
+      summary: Evaluate a flag in the environment identified exclusively by the API key
+      security: [{EnvironmentApiKey: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/EvaluationRequest'}
+      responses:
+        '200':
+          description: Decision, including FLAG_NOT_FOUND
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/EvaluationResponse'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '503':
+          description: PostgreSQL authentication unavailable; Redis failure alone does not cause this response
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ApiError'}
+  /api/v1/projects/{projectId}/environments/{environmentId}/api-keys:
+    parameters:
+      - {$ref: '#/components/parameters/ProjectId'}
+      - {$ref: '#/components/parameters/EnvironmentId'}
+    post:
+      operationId: createEnvironmentApiKey
+      summary: Generate a key; its complete value is returned only once
+      security: [{BearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: {type: string, minLength: 1, maxLength: 100, pattern: '.*\S.*'}
+      responses:
+        '201':
+          description: Key created and audited
+          headers:
+            Cache-Control:
+              schema: {type: string, example: no-store}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ApiKeyCreated'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    get:
+      operationId: listEnvironmentApiKeys
+      summary: List metadata, including revoked keys; no secret or hash
+      security: [{BearerAuth: []}]
+      responses:
+        '200':
+          description: Keys belonging to the owned environment
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/ApiKeyMetadata'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/v1/projects/{projectId}/environments/{environmentId}/api-keys/{keyId}:
+    parameters:
+      - {$ref: '#/components/parameters/ProjectId'}
+      - {$ref: '#/components/parameters/EnvironmentId'}
+      - name: keyId
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    delete:
+      operationId: revokeEnvironmentApiKey
+      summary: Idempotently revoke the key and audit its first revocation
+      security: [{BearerAuth: []}]
+      responses:
+        '204': {description: Revoked or already revoked}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+components:
+  securitySchemes:
+    BearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
+    EnvironmentApiKey: {type: apiKey, in: header, name: X-API-Key}
+  parameters:
+    ProjectId:
+      name: projectId
+      in: path
+      required: true
+      schema: {type: integer, format: int64}
+    EnvironmentId:
+      name: environmentId
+      in: path
+      required: true
+      schema: {type: integer, format: int64}
+  responses:
+    BadRequest:
+      description: Invalid input; evaluation refuses additional fields
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ApiError'}
+    Unauthorized:
+      description: Missing, invalid or revoked credentials for the required authentication mechanism
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ApiError'}
+    NotFound:
+      description: Resource absent, another owner or wrong parent (same response)
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ApiError'}
+  schemas:
+    EvaluationRequest:
+      type: object
+      additionalProperties: false
+      required: [flagKey, userKey]
+      properties:
+        flagKey: {type: string, minLength: 1, maxLength: 100, pattern: '^[a-z0-9_-]+$', example: new_checkout}
+        userKey: {type: string, minLength: 1, maxLength: 256, pattern: '.*\S.*', example: user-123}
+    EvaluationResponse:
+      type: object
+      additionalProperties: false
+      required: [flagKey, enabled, reason]
+      properties:
+        flagKey: {type: string}
+        enabled: {type: boolean}
+        reason: {type: string, enum: [FLAG_DISABLED, ROLLOUT_MATCH, ROLLOUT_MISS, FLAG_NOT_FOUND]}
+    ApiKeyMetadata:
+      type: object
+      additionalProperties: false
+      required: [id, environmentId, name, prefix, createdAt]
+      properties:
+        id: {type: integer, format: int64}
+        environmentId: {type: integer, format: int64}
+        name: {type: string}
+        prefix: {type: string, pattern: '^rp_[a-f0-9]{32}$'}
+        createdAt: {type: string, format: date-time}
+        revokedAt: {type: string, format: date-time, nullable: true}
+    ApiKeyCreated:
+      type: object
+      additionalProperties: false
+      required: [key, apiKey]
+      properties:
+        key: {$ref: '#/components/schemas/ApiKeyMetadata'}
+        apiKey:
+          type: string
+          pattern: '^rp_[a-f0-9]{32}\.[A-Za-z0-9_-]{43}$'
+          description: Complete secret, available only in this creation response
+    ApiError:
+      type: object
+      required: [timestamp, status, code, message, path, fieldErrors]
+      properties:
+        timestamp: {type: string, format: date-time}
+        status: {type: integer}
+        code: {type: string}
+        message: {type: string}
+        path: {type: string}
+        fieldErrors: {type: object, additionalProperties: {type: string}}

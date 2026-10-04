@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: releasepilot
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:releasepilot}
+    username: ${POSTGRES_USER:releasepilot}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      connect-timeout: 2s
+      timeout: 2s
+      repositories:
+        enabled: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+releasepilot:
+  frontend:
+    origin: ${FRONTEND_ORIGIN:http://127.0.0.1:5173}
+  evaluation:
+    cache-ttl-seconds: ${EVALUATION_CACHE_TTL_SECONDS:60}
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-seconds: ${JWT_EXPIRATION_SECONDS:900}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
